@@ -1,6 +1,6 @@
 import './App.css';
 import firebaseInitialize from './Firebase/firebase.initialize';
-import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, signOut } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Form, Button } from 'react-bootstrap';
@@ -13,8 +13,10 @@ const githubProvider = new GithubAuthProvider();
 function App() {
 
   const [user, setUser] = useState({});
-  const[email, setEmail]=useState('');
-  const[password, setPassword]=useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [LoggedIn, setLoggedIn] = useState(false)
 
   const auth = getAuth();
 
@@ -77,9 +79,40 @@ function App() {
   const handalePasswordChange = e => {
     setPassword(e.target.value);
   }
+
   const handleRegistration = e => {
-    console.log(email,password);
     e.preventDefault();
+    if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)) {
+      setError('Password must contain Minimum eight characters, at least one letter and one number');
+      return;
+    }
+    LoggedIn ? loginProcess(email, password) : createNewUser(email, password);
+  }
+
+  const createNewUser = (email, password) => {
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(userCredential => {
+        const user = userCredential.user;
+        console.log(user);
+        setError('');
+      }).catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        setError(errorCode, ":", errorMessage);
+      });
+  }
+
+  const loginProcess = (email, password) => {
+    signInWithEmailAndPassword(auth, email, password)
+      .then(result => {
+        console.log(result.user);
+      }).catch((error) => {
+        setError(error.message);
+      });
+  }
+
+  const toggleLogin = e => {
+    setLoggedIn(e.target.checked);
   }
 
   return (
@@ -101,22 +134,28 @@ function App() {
       }
 
 
-      <Form className="w-50 mx-auto" onSubmit={handleRegistration}>
+      <p className="text-primary fs-4">Please {LoggedIn ? 'Login' : 'Register'}</p>
+
+      <Form className="w-50 mx-auto text-start" onSubmit={handleRegistration}>
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>Email address</Form.Label>
-          <Form.Control type="email" onBlur={handaleEmailChange} placeholder="Enter email" />
+          <Form.Control type="email" required onBlur={handaleEmailChange} placeholder="Enter email" />
           <Form.Text className="text-muted">
-            We'll never share your email with anyone else.
+            We'll never share your email with anyone else
           </Form.Text>
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="formBasicPassword">
           <Form.Label>Password</Form.Label>
-          <Form.Control type="password" onBlur={handalePasswordChange} placeholder="Password" />
+          <Form.Control type="password" required onBlur={handalePasswordChange} placeholder="Password" />
+        </Form.Group>
+        <Form.Group className="mb-3" controlId="formBasicCheckbox">
+          <Form.Check onChange={toggleLogin} type="checkbox" label="Already registered?" />
         </Form.Group>
         <Button variant="primary" type="submit">
-          Submit
+          {LoggedIn ? 'Login' : 'Register'}
         </Button>
+        <p className="ms-2 text-danger">{error}</p>
       </Form>
 
     </div>
