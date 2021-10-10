@@ -1,6 +1,6 @@
 import './App.css';
 import firebaseInitialize from './Firebase/firebase.initialize';
-import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, updateProfile } from "firebase/auth";
 import { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Form, Button } from 'react-bootstrap';
@@ -16,7 +16,8 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [LoggedIn, setLoggedIn] = useState(false)
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [name, setName] = useState('');
 
   const auth = getAuth();
 
@@ -73,6 +74,9 @@ function App() {
       setUser({});
     })
   }
+  const handleNameChange = e => {
+    setName(e.target.value);
+  }
   const handaleEmailChange = e => {
     setEmail(e.target.value);
   }
@@ -86,14 +90,20 @@ function App() {
       setError('Password must contain Minimum eight characters, at least one letter and one number');
       return;
     }
-    LoggedIn ? loginProcess(email, password) : createNewUser(email, password);
+    alreadyRegistered ? loginProcess(email, password) : createNewUser(email, password);
   }
 
   const createNewUser = (email, password) => {
     createUserWithEmailAndPassword(auth, email, password)
       .then(userCredential => {
         const user = userCredential.user;
+        setUserName();
         console.log(user);
+
+        // ..............Uncomment next line to verify email............
+        // verifyEmail();
+
+
         setError('');
       }).catch((error) => {
         const errorCode = error.code;
@@ -106,14 +116,40 @@ function App() {
     signInWithEmailAndPassword(auth, email, password)
       .then(result => {
         console.log(result.user);
+        setError('');
       }).catch((error) => {
         setError(error.message);
       });
   }
 
   const toggleLogin = e => {
-    setLoggedIn(e.target.checked);
+    setAlreadyRegistered(e.target.checked);
   }
+
+  const verifyEmail = () => {
+    sendEmailVerification(auth.currentUser)
+      .then(result => {
+        console.log(result);
+      });
+  }
+
+  const handleResetPassword = () => {
+    sendPasswordResetEmail(auth, email)
+      .then(result => {
+
+      })
+  }
+
+  const setUserName = () => {
+    updateProfile(auth.currentUser, {
+      displayName: name
+    }).then((result) => {
+      console.log(result)
+    }).catch((error) => {
+      setError(error);
+    });
+  }
+
 
   return (
     <div className="App mt-5">
@@ -134,9 +170,13 @@ function App() {
       }
 
 
-      <p className="text-primary fs-4">Please {LoggedIn ? 'Login' : 'Register'}</p>
+      <p className="text-primary fs-4">Please {alreadyRegistered ? 'Login' : 'Register'}</p>
 
       <Form className="w-50 mx-auto text-start" onSubmit={handleRegistration}>
+        {!alreadyRegistered && <Form.Group className="mb-3">
+          <Form.Label>Name</Form.Label>
+          <Form.Control placeholder="Enter your name" required onBlur={handleNameChange} />
+        </Form.Group>}
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>Email address</Form.Label>
           <Form.Control type="email" required onBlur={handaleEmailChange} placeholder="Enter email" />
@@ -153,7 +193,10 @@ function App() {
           <Form.Check onChange={toggleLogin} type="checkbox" label="Already registered?" />
         </Form.Group>
         <Button variant="primary" type="submit">
-          {LoggedIn ? 'Login' : 'Register'}
+          {alreadyRegistered ? 'Login' : 'Register'}
+        </Button>
+        <Button variant="secondary" size="sm" className="ms-2" onClick={handleResetPassword}>
+          Reset Password
         </Button>
         <p className="ms-2 text-danger">{error}</p>
       </Form>
