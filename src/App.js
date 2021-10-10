@@ -1,6 +1,6 @@
 import './App.css';
 import firebaseInitialize from './Firebase/firebase.initialize';
-import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, updateProfile } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, FacebookAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, updateProfile } from "firebase/auth";
 import { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Form, Button } from 'react-bootstrap';
@@ -9,6 +9,7 @@ import { Form, Button } from 'react-bootstrap';
 firebaseInitialize();
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
+const facebookProvider = new FacebookAuthProvider();
 
 function App() {
 
@@ -47,6 +48,30 @@ function App() {
 
   const handleGithubSignIn = () => {
     signInWithPopup(auth, githubProvider)
+      .then(result => {
+        const { displayName, email, photoURL, providerData } = result.user;
+        const users = {
+          name: displayName,
+          email: email,
+          img: photoURL,
+          providerId: providerData[0].providerId
+        };
+        setUser(users);
+
+      }).catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        // The email of the user's account used.
+        const email = error.email;
+        // The AuthCredential type that was used.
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        // ...
+      });
+  }
+
+  const handleFacebookSignIn = () => {
+    signInWithPopup(auth, facebookProvider)
       .then(result => {
         const { displayName, email, photoURL, providerData } = result.user;
         const users = {
@@ -157,6 +182,7 @@ function App() {
         <div>
           <button onClick={handleGoogleSignIn}>Google Sign In</button>
           <button onClick={handleGithubSignIn}>Github Sign In</button>
+          <button onClick={handleFacebookSignIn}>Facebook Sign In</button>
         </div>
         : <button onClick={handleSignOut}>Sign Out</button>}
       <br />
